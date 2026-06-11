@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Trắc Nghiệm: Bất Phương Trình Bậc Nhất Một Ẩn</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --danger-color: #f44336;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 1.5rem;
+        }
+        /* Bảng câu hỏi */
+        .question-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .q-btn {
+            padding: 10px;
+            background-color: #e0e0e0;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .q-btn:hover { background-color: #d5d5d5; }
+        .q-btn.active { background-color: #2196F3; color: white; }
+        .q-btn.correct { background-color: var(--primary-color); color: white; }
+        .q-btn.wrong { background-color: var(--danger-color); color: white; }
+
+        /* Vùng hiển thị câu hỏi */
+        .question-container {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .option-btn {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .option-btn:hover {
+            border-color: #2196F3;
+            background-color: #e3f2fd;
+        }
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        /* Lời giải */
+        .feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        .feedback.success {
+            background-color: #e8f5e9;
+            border-left: 5px solid var(--primary-color);
+        }
+        .feedback.error {
+            background-color: #ffebee;
+            border-left: 5px solid var(--danger-color);
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .nav-btn {
+            padding: 10px 20px;
+            background-color: #607d8b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎯 Luyện Tập Bất Phương Trình</h2>
+    
+    <div><strong>Bảng chọn câu hỏi:</strong></div>
+    <div class="question-board" id="board"></div>
+
+    <div id="quiz-area">
+        <div class="question-container" id="question-text"></div>
+        <div class="options" id="options-area"></div>
+        <div class="feedback" id="feedback-area"></div>
+        
+        <div class="nav-buttons">
+            <button class="nav-btn" onclick="prevQuestion()">🔙 Câu trước</button>
+            <button class="nav-btn" onclick="nextQuestion()">Câu sau 🔜</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dữ liệu 11 câu hỏi từ ảnh (Lưu ý: Có 2 câu số 3 nên đánh số từ 1 đến 11)
+    const quizData = [
+        {
+            id: 1, label: "Câu 1",
+            question: "Nghiệm của Bất phương trình \\(x + 3 < 1\\) là:",
+            options: [
+                { text: "A. \\(x < -2\\)", isCorrect: true },
+                { text: "B. \\(x > 2\\)", isCorrect: false },
+                { text: "C. \\(x < 2\\)", isCorrect: false },
+                { text: "D. \\(x < 4\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(x + 3 < 1\\)<br>Chuyển \\(+3\\) từ vế trái sang vế phải và đổi dấu thành \\(-3\\):<br>\\(\\Leftrightarrow x < 1 - 3\\)<br>\\(\\Leftrightarrow x < -2\\)<br>Vậy đáp án đúng là <b>A</b>."
+        },
+        {
+            id: 2, label: "Câu 2",
+            question: "Nghiệm của bất phương trình \\(12 - 3x \\le 0\\) là",
+            options: [
+                { text: "A. \\(x \\le 4\\)", isCorrect: false },
+                { text: "B. \\(x \\ge 4\\)", isCorrect: true },
+                { text: "C. \\(x \\le -4\\)", isCorrect: false },
+                { text: "D. \\(x \\ge -4\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(12 - 3x \\le 0\\)<br>Chuyển \\(12\\) sang vế phải:<br>\\(\\Leftrightarrow -3x \\le -12\\)<br>Chia cả 2 vế cho số âm \\(-3\\) (<b>Lưu ý: phải đổi chiều bất phương trình</b>):<br>\\(\\Leftrightarrow x \\ge \\frac{-12}{-3}\\)<br>\\(\\Leftrightarrow x \\ge 4\\)<br>Vậy đáp án đúng là <b>B</b>."
+        },
+        {
+            id: 3, label: "Câu 3a",
+            question: "Nghiệm của bất phương trình \\(2x \\ge -12\\) là",
+            options: [
+                { text: "A. \\(x \\ge 6\\)", isCorrect: false },
+                { text: "B. \\(x \\ge -6\\)", isCorrect: true },
+                { text: "C. \\(x \\le -6\\)", isCorrect: false },
+                { text: "D. \\(x < -6\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(2x \\ge -12\\)<br>Chia cả 2 vế cho số dương \\(2\\) (không đổi chiều):<br>\\(\\Leftrightarrow x \\ge \\frac{-12}{2}\\)<br>\\(\\Leftrightarrow x \\ge -6\\)<br>Vậy đáp án đúng là <b>B</b>."
+        },
+        {
+            id: 4, label: "Câu 3b",
+            question: "Bất phương trình \\(2 + x \\le 10\\) có nghiệm là",
+            options: [
+                { text: "A. \\(x \\ge 5\\)", isCorrect: false },
+                { text: "B. \\(x \\ge 12\\)", isCorrect: false },
+                { text: "C. \\(x \\le 8\\)", isCorrect: true },
+                { text: "D. \\(x \\le 5\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(2 + x \\le 10\\)<br>Chuyển \\(2\\) sang vế phải:<br>\\(\\Leftrightarrow x \\le 10 - 2\\)<br>\\(\\Leftrightarrow x \\le 8\\)<br>Vậy đáp án đúng là <b>C</b>."
+        },
+        {
+            id: 5, label: "Câu 4",
+            question: "Giá trị \\(x = 2\\) là nghiệm của bất phương trình nào sau đây?",
+            options: [
+                { text: "A. \\(7 - x < 2x\\)", isCorrect: false },
+                { text: "B. \\(2x + 3 > 9\\)", isCorrect: false },
+                { text: "C. \\(-4x \\ge x + 5\\)", isCorrect: false },
+                { text: "D. \\(5 - x > 6x - 12\\)", isCorrect: true }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta thay \\(x = 2\\) vào từng đáp án để kiểm tra mệnh đề đúng/sai:<br>- Câu A: \\(7 - 2 < 2.2 \\Leftrightarrow 5 < 4\\) (Sai)<br>- Câu B: \\(2.2 + 3 > 9 \\Leftrightarrow 7 > 9\\) (Sai)<br>- Câu C: \\(-4.2 \\ge 2 + 5 \\Leftrightarrow -8 \\ge 7\\) (Sai)<br>- Câu D: \\(5 - 2 > 6.2 - 12 \\Leftrightarrow 3 > 0\\) (<b>Đúng</b>)<br>Vậy đáp án đúng là <b>D</b>."
+        },
+        {
+            id: 6, label: "Câu 5",
+            question: "Nghiệm của bất phương trình \\(4x + 12 > 0\\) là",
+            options: [
+                { text: "A. \\(x > -1\\)", isCorrect: false },
+                { text: "B. \\(-3 < x\\)", isCorrect: true },
+                { text: "C. \\(x > 3\\)", isCorrect: false },
+                { text: "D. \\(x < -3\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(4x + 12 > 0\\)<br>Chuyển \\(+12\\) sang vế phải:<br>\\(\\Leftrightarrow 4x > -12\\)<br>Chia 2 vế cho 4:<br>\\(\\Leftrightarrow x > -3\\)<br>Cách viết \\(x > -3\\) cũng chính là \\(-3 < x\\).<br>Vậy đáp án đúng là <b>B</b>."
+        },
+        {
+            id: 7, label: "Câu 6",
+            question: "Nghiệm của bất phương trình \\(2x + 5 < 3x - 4\\) là",
+            options: [
+                { text: "A. \\(x < 9\\)", isCorrect: false },
+                { text: "B. \\(x \\ge 9\\)", isCorrect: false },
+                { text: "C. \\(x > 9\\)", isCorrect: true },
+                { text: "D. \\(-x > -9\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(2x + 5 < 3x - 4\\)<br>Chuyển các hạng tử chứa \\(x\\) sang vế trái, số sang vế phải:<br>\\(\\Leftrightarrow 2x - 3x < -4 - 5\\)<br>\\(\\Leftrightarrow -x < -9\\)<br>Nhân (hoặc chia) cả 2 vế cho \\(-1\\) và <b>đổi chiều</b> bất phương trình:<br>\\(\\Leftrightarrow x > 9\\)<br>Vậy đáp án đúng là <b>C</b>."
+        },
+        {
+            id: 8, label: "Câu 7",
+            question: "Bất phương trình \\(3(x + 6) - 2(x - 2) < 4(x + 1)\\) có nghiệm là",
+            options: [
+                { text: "A. \\(x \\ge 6\\)", isCorrect: false },
+                { text: "B. \\(x < 6\\)", isCorrect: false },
+                { text: "C. \\(x \\le 6\\)", isCorrect: false },
+                { text: "D. \\(x > 6\\)", isCorrect: true }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Nhân phá ngoặc ta có:<br>\\(3x + 18 - 2x + 4 < 4x + 4\\)<br>Thu gọn vế trái:<br>\\(\\Leftrightarrow x + 22 < 4x + 4\\)<br>Chuyển vế:<br>\\(\\Leftrightarrow x - 4x < 4 - 22\\)<br>\\(\\Leftrightarrow -3x < -18\\)<br>Chia 2 vế cho \\(-3\\) (<b>nhớ đổi chiều</b>):<br>\\(\\Leftrightarrow x > 6\\)<br>Vậy đáp án đúng là <b>D</b>."
+        },
+        {
+            id: 9, label: "Câu 8",
+            question: "Bất phương trình \\(2x - 4 > 0\\) có tập nghiệm là",
+            options: [
+                { text: "A. \\(S = \\{x \\in \\mathbb{R} | x > 2\\}\\)", isCorrect: true },
+                { text: "B. \\(S = \\{x \\in \\mathbb{R} | x > 3\\}\\)", isCorrect: false },
+                { text: "C. \\(S = \\{x \\in \\mathbb{R} | x < 2\\}\\)", isCorrect: false },
+                { text: "D. \\(S = \\{x \\in \\mathbb{R} | x \\ge 2\\}\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(2x - 4 > 0\\)<br>\\(\\Leftrightarrow 2x > 4\\)<br>\\(\\Leftrightarrow x > 2\\)<br>Ký hiệu tập nghiệm là: \\(S = \\{x \\in \\mathbb{R} | x > 2\\}\\).<br>Vậy đáp án đúng là <b>A</b>."
+        },
+        {
+            id: 10, label: "Câu 9",
+            question: "Nghiệm của bất phương trình \\(-2x + 1 > 0\\) là:",
+            options: [
+                { text: "A. \\(x > \\frac{1}{2}\\)", isCorrect: false },
+                { text: "B. \\(x \\ge \\frac{1}{2}\\)", isCorrect: false },
+                { text: "C. \\(x < \\frac{1}{2}\\)", isCorrect: true },
+                { text: "D. \\(x \\le \\frac{1}{2}\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(-2x + 1 > 0\\)<br>\\(\\Leftrightarrow -2x > -1\\)<br>Chia cả 2 vế cho \\(-2\\) (<b>phải đổi chiều</b> bất phương trình):<br>\\(\\Leftrightarrow x < \\frac{-1}{-2}\\)<br>\\(\\Leftrightarrow x < \\frac{1}{2}\\)<br>Vậy đáp án đúng là <b>C</b>."
+        },
+        {
+            id: 11, label: "Câu 10",
+            question: "Nghiệm của bất phương trình: \\(-3x - 3 < 0\\) là:",
+            options: [
+                { text: "A. \\(x < 1\\)", isCorrect: false },
+                { text: "B. \\(x < -1\\)", isCorrect: false },
+                { text: "C. \\(x > -1\\)", isCorrect: true },
+                { text: "D. \\(x > 1\\)", isCorrect: false }
+            ],
+            explanation: "<b>Hướng dẫn chi tiết:</b><br>Ta có: \\(-3x - 3 < 0\\)<br>Chuyển \\(-3\\) sang vế phải:<br>\\(\\Leftrightarrow -3x < 3\\)<br>Chia cả 2 vế cho số âm \\(-3\\) (<b>phải đổi chiều</b>):<br>\\(\\Leftrightarrow x > \\frac{3}{-3}\\)<br>\\(\\Leftrightarrow x > -1\\)<br>Vậy đáp án đúng là <b>C</b>."
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let userAnswers = new Array(quizData.length).fill(null);
+
+    function initBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        quizData.forEach((q, index) => {
+            const btn = document.createElement('button');
+            btn.className = `q-btn ${index === currentQuestionIndex ? 'active' : ''}`;
+            btn.innerText = index + 1;
+            btn.onclick = () => loadQuestion(index);
+            board.appendChild(btn);
+        });
+    }
+
+    function updateBoardStyles() {
+        const buttons = document.querySelectorAll('.q-btn');
+        buttons.forEach((btn, index) => {
+            btn.className = 'q-btn';
+            if (index === currentQuestionIndex) btn.classList.add('active');
+            if (userAnswers[index] === true) btn.classList.add('correct');
+            if (userAnswers[index] === false) btn.classList.add('wrong');
+        });
+    }
+
+    function loadQuestion(index) {
+        currentQuestionIndex = index;
+        const q = quizData[index];
+        
+        document.getElementById('question-text').innerHTML = `<b>${q.label}:</b> ${q.question}`;
+        
+        const optionsArea = document.getElementById('options-area');
+        optionsArea.innerHTML = '';
+        
+        q.options.forEach((opt, optIndex) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = opt.text;
+            
+            // Nếu câu này đã trả lời, vô hiệu hóa các nút
+            if (userAnswers[index] !== null) {
+                btn.disabled = true;
+                if (opt.isCorrect) btn.style.borderColor = "var(--primary-color)";
+                if (!opt.isCorrect && btn.dataset.selected === 'true') btn.style.borderColor = "var(--danger-color)";
+            }
+
+            btn.onclick = () => checkAnswer(opt.isCorrect, index, btn);
+            optionsArea.appendChild(btn);
+        });
+
+        const feedback = document.getElementById('feedback-area');
+        if (userAnswers[index] !== null) {
+            showFeedback(userAnswers[index], q.explanation);
+        } else {
+            feedback.style.display = 'none';
+        }
+
+        updateBoardStyles();
+        
+        // Render lại Toán học mỗi khi đổi câu
+        if(window.MathJax) {
+            MathJax.typesetPromise();
+        }
+    }
+
+    function checkAnswer(isCorrect, qIndex, selectedBtn) {
+        userAnswers[qIndex] = isCorrect;
+        selectedBtn.dataset.selected = 'true';
+        
+        const q = quizData[qIndex];
+        showFeedback(isCorrect, q.explanation);
+        
+        // Load lại để vô hiệu hóa các nút
+        loadQuestion(qIndex);
+    }
+
+    function showFeedback(isCorrect, explanation) {
+        const feedback = document.getElementById('feedback-area');
+        feedback.style.display = 'block';
+        if (isCorrect) {
+            feedback.className = 'feedback success';
+            feedback.innerHTML = '<b>🎉 Rất chính xác! Cứ phát huy thế nhé!</b>';
+        } else {
+            feedback.className = 'feedback error';
+            feedback.innerHTML = `<b>❌ Tiếc quá, chưa đúng rồi! Hãy xem lại cách làm nhé:</b><br><br>${explanation}`;
+        }
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < quizData.length - 1) {
+            loadQuestion(currentQuestionIndex + 1);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            loadQuestion(currentQuestionIndex - 1);
+        }
+    }
+
+    // Khởi tạo lần đầu
+    initBoard();
+    loadQuestion(0);
+</script>
+
+</body>
+</html>
